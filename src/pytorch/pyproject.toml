@@ -1,0 +1,15 @@
+[project]
+name = "mlserver_pytorch"
+dynamic = ["version", "dependencies"]
+description = "Custom MLServer runtime for Pytorch Models"
+authors = [
+    { name="Ericsson MLOps" },
+]
+requires-python = ">=3.9,<3.12"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}

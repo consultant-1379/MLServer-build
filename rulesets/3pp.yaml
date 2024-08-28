@@ -1,0 +1,765 @@
+#
+# COPYRIGHT Ericsson 2022
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+modelVersion: 2.0
+
+# See image catalog: https://confluence.lmera.ericsson.se/display/ACD/ADP+CICD+Docker+Image+Catalog
+docker-images:
+    - adp-release-auto: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-adp-release-auto:${env.RELEASE_AUTO_TAG}
+    - adp-maven-builder: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-java11mvnbuilder:${env.MVN_BUILDER_TAG}
+    - adp-go-builder: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-gobuilder.adp-base-os:latest
+    - ci-toolkit: armdocker.rnd.ericsson.se/proj-mxe-ci-internal/ci-toolkit:${env.CI_TOOLKIT_TAG}
+
+local-docker-images:
+    - mlserver-fossa-analyzer: ${build.mlserver-fossa-analyzer-image}
+    - mlserver-tensorflow-fossa-analyzer: ${build.mlserver-tensorflow-fossa-analyzer-image}
+    - mlserver-pytorch-fossa-analyzer: ${build.mlserver-pytorch-fossa-analyzer-image}
+
+import:
+    common: common-properties.yaml
+    build: build.yaml
+
+properties:
+    # FOSSA
+    - fossa-server-endpoint: https://scasfossa.internal.ericsson.com/
+    - fossa-project-name-prefix: eric-aiml-model-lcm
+    - fossa-dir: ${env.PWD}/config/fossa
+    - fossa-json-reports-dir: ${fossa-dir}/json-reports
+    
+    - fossa-mlserver-project-name: ${fossa-project-name-prefix}-mlserver
+    - fossa-mlserver-report-name: ${fossa-json-reports-dir}/fossa-mlserver-report.json
+    - fossa-mlserver-src-path: ${env.PWD}/.bob/3pps/mlserver
+    - fossa-mlserver-dependency-file: ${fossa-dir}/dependencies.mlserver.yaml
+    - license-agreement-mlserver : ${fossa-dir}/license-agreement-mlserver.yaml
+
+    - fossa-2pp-dependency-file: ${fossa-dir}/dependencies.mlserver-build-2pp.yaml
+    - fossa-3pp-dependency-file: ${fossa-dir}/dependencies.mlserver-3pp.yaml
+    - license-agreement-3pp : ${fossa-dir}/license-agreement-3pp.yaml
+
+    - fossa-mlserver-runtime-config-template: ${fossa-dir}/.fossa_mlserver_runtime.yaml.tmpl
+
+    - fossa-catboost-runtime-project-name: ${fossa-project-name-prefix}-catboost-runtime
+    - fossa-catboost-runtime-report-name: ${fossa-json-reports-dir}/fossa-catboost-runtime-report.json
+    - fossa-catboost-config: ${fossa-dir}/.fossa_catboost_runtime.yaml
+    - fossa-catboost-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/catboost
+    - fossa-catboost-dependency-file: ${fossa-dir}/dependencies.catboost.yaml
+    - license-agreement-catboost : ${fossa-dir}/license-agreement-catboost.yaml
+
+    - fossa-huggingface-runtime-project-name: ${fossa-project-name-prefix}-huggingface-runtime
+    - fossa-huggingface-runtime-report-name: ${fossa-json-reports-dir}/fossa-huggingface-runtime-report.json
+    - fossa-huggingface-config: ${fossa-dir}/.fossa_huggingface_runtime.yaml
+    - fossa-huggingface-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/huggingface
+    - fossa-huggingface-dependency-file: ${fossa-dir}/dependencies.huggingface.yaml
+    - license-agreement-huggingface : ${fossa-dir}/license-agreement-huggingface.yaml
+
+    - fossa-lightgbm-runtime-project-name: ${fossa-project-name-prefix}-lightgbm-runtime
+    - fossa-lightgbm-runtime-report-name: ${fossa-json-reports-dir}/fossa-lightgbm-runtime-report.json
+    - fossa-lightgbm-config: ${fossa-dir}/.fossa_lightgbm_runtime.yaml
+    - fossa-lightgbm-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/lightgbm
+    - fossa-lightgbm-dependency-file: ${fossa-dir}/dependencies.lightgbm.yaml
+    - license-agreement-lightgbm : ${fossa-dir}/license-agreement-lightgbm.yaml
+
+    - fossa-mlflow-runtime-project-name: ${fossa-project-name-prefix}-mlflow-runtime
+    - fossa-mlflow-runtime-report-name: ${fossa-json-reports-dir}/fossa-mlflow-runtime-report.json
+    - fossa-mlflow-config: ${fossa-dir}/.fossa_mlflow_runtime.yaml
+    - fossa-mlflow-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/mlflow
+    - fossa-mlflow-dependency-file: ${fossa-dir}/dependencies.mlflow.yaml
+    - license-agreement-mlflow : ${fossa-dir}/license-agreement-mlflow.yaml
+
+    - fossa-sklearn-runtime-project-name: ${fossa-project-name-prefix}-sklearn-runtime
+    - fossa-sklearn-runtime-report-name: ${fossa-json-reports-dir}/fossa-sklearn-runtime-report.json
+    - fossa-sklearn-config: ${fossa-dir}/.fossa_sklearn_runtime.yaml
+    - fossa-sklearn-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/sklearn
+    - fossa-sklearn-dependency-file: ${fossa-dir}/dependencies.sklearn.yaml
+    - license-agreement-sklearn : ${fossa-dir}/license-agreement-sklearn.yaml
+
+    - fossa-xgboost-runtime-project-name: ${fossa-project-name-prefix}-xgboost-runtime
+    - fossa-xgboost-runtime-report-name: ${fossa-json-reports-dir}/fossa-xgboost-runtime-report.json
+    - fossa-xgboost-config: ${fossa-dir}/.fossa_xgboost_runtime.yaml
+    - fossa-xgboost-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/xgboost
+    - fossa-xgboost-dependency-file: ${fossa-dir}/dependencies.xgboost.yaml
+    - license-agreement-xgboost : ${fossa-dir}/license-agreement-xgboost.yaml
+
+    - fossa-mllib-runtime-project-name: ${fossa-project-name-prefix}-mllib-runtime
+    - fossa-mllib-runtime-report-name: ${fossa-json-reports-dir}/fossa-mllib-runtime-report.json
+    - fossa-mllib-config: ${fossa-dir}/.fossa_mllib_runtime.yaml
+    - fossa-mllib-runtime-src-path: ${fossa-mlserver-src-path}/runtimes/mllib
+    - fossa-mllib-dependency-file: ${fossa-dir}/dependencies.mllib.yaml
+    - license-agreement-mllib : ${fossa-dir}/license-agreement-mllib.yaml
+
+    - fossa-mlserver-tensorflow-project-name: ${fossa-project-name-prefix}-mlserver-tensorflow
+    - fossa-mlserver-tensorflow-report-name: ${fossa-json-reports-dir}/fossa-mlserver-tensorflow-report.json
+    - fossa-tensorflow-dependency-file: ${fossa-dir}/dependencies.mlserver-tensorflow.yaml
+    - license-agreement-mlserver-tensorflow : ${fossa-dir}/license-agreement-mlserver-tensorflow.yaml
+
+    - fossa-mlserver-pytorch-project-name: ${fossa-project-name-prefix}-mlserver-pytorch
+    - fossa-mlserver-pytorch-report-name: ${fossa-json-reports-dir}/fossa-mlserver-pytorch-report.json
+    - fossa-pytorch-dependency-file : ${fossa-dir}/dependencies.mlserver-pytorch.yaml
+    - license-agreement-mlserver-pytorch: ${fossa-dir}/license-agreement-mlserver-pytorch.yaml
+
+    # properties for generic tasks
+    # consts
+    - timeout: 300
+    - scas-name-scan-threshold: 90
+    - scas-version-scan-threshold: 90
+    - scas-product-id: "7756"
+    - scas-product-version-id: "8617"
+    - fossa-team-name: aiml-mlops-mxe
+    # empty defaults
+    - fossa-config: ""
+    - fossa-project-name: ""
+    - fossa-report-name: ""
+    - fossa-project-dir: ""
+    - dependency-file-name: ""
+    - license-agreement-file: ""
+    
+env:
+    - DOCKER_NETWORK (default=--network host)
+    - HOME
+    - PWD
+    - MAVEN_OPTS (default=-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn)
+
+    # Default docker image tags
+    - MVN_BUILDER_TAG (default=latest)
+    - RELEASE_AUTO_TAG (default=latest)
+
+    # FOSSA
+    - FOSSA_ARTIFACT_HASH
+    - FOSSA_API_KEY
+
+    # SCAS
+    - SCAS_REFRESH_TOKEN
+
+var:
+    - version
+    - fossa-available
+
+rules:
+    clean:
+        - task: rm
+          cmd:
+              - rm -rf *${fossa-argowf-report-name}
+    
+    init: 
+        - task: mkdir
+          cmd:
+              - mkdir -p ${fossa-json-reports-dir}
+
+    fossa-server-check:
+        - task: check-status
+          docker-image: adp-release-auto
+          cmd:
+            - sh -c 'if curl ${fossa-server-endpoint}; then
+                echo "FOSSA server available.";
+                echo true > .bob/var.fossa-available;
+                else
+                echo "Unable to connect to FOSSA server. Skipping FOSSA Analysis.";
+                echo false > .bob/var.fossa-available;
+                fi'
+
+    # generic task not to be invoked directly
+    # invoke from other rules after setting project-dir, project-name, fossa-config
+    fossa-generic-analyze:
+        - task: fossa-analyze
+          docker-image: adp-release-auto
+          docker-envs:
+            - FOSSA_API_KEY
+          cmd: bash -c '''
+              set -eux -o pipefail;
+              if [ -z ${fossa-project-dir} ] || [ -z ${fossa-project-name} ]; then
+                echo "fossa-generic-analyze cannot be run without setting project-dir and project-name";
+                echo "Create a new rule that invokes fossa-generic-analyze and sets project-dir, project-name, fossa-config";
+                exit 1;
+              fi;
+              cd ${fossa-project-dir};
+              if [ -f ${fossa-config} ]; then
+                cp ${fossa-config} .fossa.yml;
+              else
+                echo "FOSSA config file ${fossa-config} not found. Cannot proceed with FOSSA Analysis.";
+                exit 1;
+              fi;
+              fossa analyze --revision ${var.version} --project ${fossa-project-name};'''
+    
+    fossa-mlserver-base-analyze:
+        - task: fossa-analyze
+          docker-image: mlserver-fossa-analyzer
+          docker-envs:
+            - FOSSA_API_KEY
+          cmd: bash -c '''set -eux -o pipefail;
+              cd /fossa;
+              fossa analyze --revision ${var.version} --team ${fossa-team-name} --project ${fossa-mlserver-project-name} --endpoint ${fossa-server-endpoint};'''
+
+    fossa-catboost-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-catboost-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-catboost-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-catboost-runtime-src-path}
+            - fossa-project-name: ${fossa-catboost-runtime-project-name}
+            - fossa-config: ${fossa-catboost-config}
+    
+    fossa-huggingface-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-huggingface-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-huggingface-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-huggingface-runtime-src-path}
+            - fossa-project-name: ${fossa-huggingface-runtime-project-name}
+            - fossa-config: ${fossa-huggingface-config}
+    
+    fossa-lightgbm-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-lightgbm-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-lightgbm-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-lightgbm-runtime-src-path}
+            - fossa-project-name: ${fossa-lightgbm-runtime-project-name}
+            - fossa-config: ${fossa-lightgbm-config}
+    
+    fossa-mlflow-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-mlflow-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-mlflow-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-mlflow-runtime-src-path}
+            - fossa-project-name: ${fossa-mlflow-runtime-project-name}
+            - fossa-config: ${fossa-mlflow-config}
+    
+    fossa-sklearn-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-sklearn-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-sklearn-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-sklearn-runtime-src-path}
+            - fossa-project-name: ${fossa-sklearn-runtime-project-name}
+            - fossa-config: ${fossa-sklearn-config}
+    
+    fossa-xgboost-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-xgboost-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-xgboost-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-xgboost-runtime-src-path}
+            - fossa-project-name: ${fossa-xgboost-runtime-project-name}
+            - fossa-config: ${fossa-xgboost-config}
+    
+    fossa-mllib-runtime-analyze:
+        - task: make-fossa-config
+          cmd: sed "s/##ID##/${fossa-mllib-runtime-project-name}/g" ${fossa-mlserver-runtime-config-template} > ${fossa-mllib-config}
+        - rule: fossa-generic-analyze
+          properties:
+            - fossa-project-dir: ${fossa-mllib-runtime-src-path}
+            - fossa-project-name: ${fossa-mllib-runtime-project-name}
+            - fossa-config: ${fossa-mllib-config}
+
+    fossa-tensorflow-runtime-analyze:
+        - task: fossa-analyze
+          docker-image: mlserver-tensorflow-fossa-analyzer
+          docker-envs:
+            - FOSSA_API_KEY
+          cmd: bash -c '''set -eux -o pipefail;
+              cd /fossa;
+              fossa analyze --revision ${var.version} --team ${fossa-team-name} --project ${fossa-mlserver-tensorflow-project-name} --endpoint ${fossa-server-endpoint};'''
+
+    fossa-pytorch-runtime-analyze:
+        - task: fossa-analyze
+          docker-image: mlserver-pytorch-fossa-analyzer
+          docker-envs:
+            - FOSSA_API_KEY
+          cmd: bash -c '''set -eux -o pipefail;
+              cd /fossa;
+              fossa analyze --revision ${var.version} --team ${fossa-team-name} --project ${fossa-mlserver-pytorch-project-name} --endpoint ${fossa-server-endpoint};'''
+
+    fossa-generic-scan-status-check:
+      - task: scan-status-check
+        docker-image: adp-release-auto
+        docker-envs:
+          - FOSSA_API_KEY
+        cmd: bash -c '''
+            set -eux -o pipefail;
+            if [ -z ${fossa-project-name} ]; then
+              echo "fossa-generic-scan-status-check cannot be run without setting fossa-project-name";
+              echo "Create a new rule that invokes fossa-generic-scan-status-check and sets fossa-project-name";
+              exit 1;
+            fi;
+            cd ${fossa-project-dir};
+            fossa_scan_status_check -s ${fossa-server-endpoint} -f custom -p ${fossa-project-name} -r ${var.version} -t ${env.FOSSA_API_KEY} -dl 15'''
+
+    fossa-mlserver-base-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-mlserver-project-name}
+            
+    fossa-catboost-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-catboost-runtime-project-name}
+
+    fossa-huggingface-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-huggingface-runtime-project-name}
+    
+    fossa-lightgbm-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-lightgbm-runtime-project-name}
+
+    fossa-mlflow-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-mlflow-runtime-project-name}
+
+    fossa-sklearn-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-sklearn-runtime-project-name}
+    
+    fossa-xgboost-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-xgboost-runtime-project-name}
+    
+    fossa-mllib-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-mllib-runtime-project-name}
+
+    fossa-tensorflow-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-mlserver-tensorflow-project-name}
+    
+    fossa-pytorch-runtime-scan-status-check:
+        - rule: fossa-generic-scan-status-check
+          properties:
+            - fossa-project-name: ${fossa-mlserver-pytorch-project-name}
+    
+    fossa-generic-fetch-scan-report:
+        - task: fossa-fetch-scan-report
+          docker-image: adp-release-auto
+          docker-envs:
+            - FOSSA_API_KEY
+          cmd: bash -c '''
+              set -eux -o pipefail;
+              if [ -z ${fossa-project-name} ] || [ -z ${fossa-report-name} ]; then
+                echo "fossa-generic-fetch-scan-report cannot be run without setting fossa-project-name, fossa-report-name and fossa-project-dir";
+                echo "Create a new rule that invokes fossa-generic-fetch-scan-report and sets fossa-project-name, fossa-report-name, fossa-project-dir";
+                exit 1;
+              fi;
+              fossa report attribution --endpoint ${fossa-server-endpoint} --project ${fossa-project-name} --revision ${var.version} --format json --timeout ${timeout} > ${fossa-report-name};'''
+
+    fossa-mlserver-base-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-mlserver-project-name}
+            - fossa-report-name: ${fossa-mlserver-report-name}
+    
+    fossa-catboost-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-catboost-runtime-project-name}
+            - fossa-report-name: ${fossa-catboost-runtime-report-name}
+    
+    fossa-huggingface-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-huggingface-runtime-project-name}
+            - fossa-report-name: ${fossa-huggingface-runtime-report-name}
+    
+    fossa-lightgbm-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-lightgbm-runtime-project-name}
+            - fossa-report-name: ${fossa-lightgbm-runtime-report-name}
+    
+    fossa-mlflow-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-mlflow-runtime-project-name}
+            - fossa-report-name: ${fossa-mlflow-runtime-report-name}
+    
+    fossa-sklearn-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-sklearn-runtime-project-name}
+            - fossa-report-name: ${fossa-sklearn-runtime-report-name}
+    
+    fossa-xgboost-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-xgboost-runtime-project-name}
+            - fossa-report-name: ${fossa-xgboost-runtime-report-name}
+    
+    fossa-mllib-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-mllib-runtime-project-name}
+            - fossa-report-name: ${fossa-mllib-runtime-report-name}
+    
+    fossa-tensorflow-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-mlserver-tensorflow-project-name}
+            - fossa-report-name: ${fossa-mlserver-tensorflow-report-name}
+    
+    fossa-pytorch-runtime-fetch-scan-report:
+        - rule: fossa-generic-fetch-scan-report
+          properties:
+            - fossa-project-name: ${fossa-mlserver-pytorch-project-name}
+            - fossa-report-name: ${fossa-mlserver-pytorch-report-name}
+
+    fossa-generic-dependency-validate:
+        - task: fossa-generic-dependency-validate
+          docker-image: adp-release-auto
+          cmd: bash -c '''
+            set -eux -o pipefail;
+            if [ -z ${dependency-file-name} ]; then
+              echo "fossa-generic-dependency-validate cannot be run without setting dependency-file-name";
+              echo "Create a new rule that invokes fossa-generic-dependency-validate and sets dependency-file-name";
+              exit 1;
+            fi;
+            dependencies validate --dependencies ${dependency-file-name}; --allow-esw4;'''
+    
+    fossa-mlserver-base-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-mlserver-dependency-file}
+
+    fossa-catboost-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-catboost-dependency-file}
+    
+    fossa-huggingface-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-huggingface-dependency-file}
+    
+    fossa-lightgbm-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-lightgbm-dependency-file}
+    
+    fossa-mlflow-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-mlflow-dependency-file}
+    
+    fossa-sklearn-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-sklearn-dependency-file}
+    
+    fossa-xgboost-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-xgboost-dependency-file}
+    
+    fossa-mllib-runtime-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-mllib-dependency-file}
+    
+    fossa-mlserver-tensorflow-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-tensorflow-dependency-file}
+
+    fossa-mlserver-pytorch-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-pytorch-dependency-file}
+
+    fossa-2pp-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-2pp-dependency-file}
+
+    fossa-3pp-dependency-validate:
+        - rule: fossa-generic-dependency-validate
+          properties:
+            - dependency-file-name: ${fossa-3pp-dependency-file}
+
+###### manual tasks - used during 3pp uplifts #######
+#####################################################
+##### scas scan #####
+
+    scas-scan-generic:
+      - task: scas-scan
+        docker-image: adp-release-auto
+        cmd: bash -c '''
+          set -eux -o pipefail;
+          if [ -z ${fossa-report-name} ] || [ -z ${dependency-file-name} ]; then
+            echo "scas-scan-generic cannot be run without setting fossa-report-name and dependency-file-name";
+            echo "Create a new rule that invokes scas-scan-generic and sets fossa-report-name, dependency-file-name";
+            exit 1;
+          fi;
+          dependencies update --fossa-report ${fossa-report-name}
+            --dependencies ${dependency-file-name} --scan-scas
+            --scas-refresh-token ${env.SCAS_REFRESH_TOKEN}
+            --link-dependencies
+            --sort
+            --name-scan-threshold ${scas-name-scan-threshold}
+            --version-scan-threshold ${scas-version-scan-threshold};'''
+    
+    scas-scan-mlserver-base:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-mlserver-report-name}
+          - dependency-file-name: ${fossa-mlserver-dependency-file}
+    
+    scas-scan-catboost-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-catboost-runtime-report-name}
+          - dependency-file-name: ${fossa-catboost-dependency-file}
+    
+    scas-scan-huggingface-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-huggingface-runtime-report-name}
+          - dependency-file-name: ${fossa-huggingface-dependency-file}
+    
+    scas-scan-lightgbm-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-lightgbm-runtime-report-name}
+          - dependency-file-name: ${fossa-lightgbm-dependency-file}
+    
+    scas-scan-mlflow-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-mlflow-runtime-report-name}
+          - dependency-file-name: ${fossa-mlflow-dependency-file}
+    
+    scas-scan-sklearn-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-sklearn-runtime-report-name}
+          - dependency-file-name: ${fossa-sklearn-dependency-file}
+
+    scas-scan-xgboost-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-xgboost-runtime-report-name}
+          - dependency-file-name: ${fossa-xgboost-dependency-file}
+    
+    scas-scan-mllib-runtime:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-mllib-runtime-report-name}
+          - dependency-file-name: ${fossa-mllib-dependency-file}
+
+    scas-scan-mlserver-tensorflow:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-mlserver-tensorflow-report-name}
+          - dependency-file-name: ${fossa-tensorflow-dependency-file}
+    
+    scas-scan-mlserver-pytorch:
+      - rule: scas-scan-generic
+        properties:
+          - fossa-report-name: ${fossa-mlserver-pytorch-report-name}
+          - dependency-file-name: ${fossa-pytorch-dependency-file}
+
+### scas scan end ###
+
+### scas registration start ###
+
+    scas-register-generic:
+      - task: scas-register 
+        docker-image: adp-release-auto
+        cmd: bash -c '''
+          set -eux -o pipefail;
+          if [ -z ${dependency-file-name} ]; then
+            echo "scas-register-generic cannot be run without setting dependency-file-name";
+            echo "Create a new rule that invokes scas-register-generic and sets dependency-file-name";
+            exit 1;
+          fi;
+          dependencies register --dependencies ${dependency-file-name}
+            --scas --scas-refresh-token ${env.SCAS_REFRESH_TOKEN}
+            --productid ${scas-product-id}
+            --versionid ${scas-product-version-id};'''
+
+    scas-register-mlserver-base:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-mlserver-dependency-file}
+
+    scas-register-catboost-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-catboost-dependency-file}
+
+    scas-register-huggingface-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-huggingface-dependency-file}
+
+    scas-register-lightgbm-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-lightgbm-dependency-file}
+
+    scas-register-mlflow-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-mlflow-dependency-file}
+
+    scas-register-sklearn-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-sklearn-dependency-file}
+
+    scas-register-xgboost-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-xgboost-dependency-file} 
+
+    scas-register-mllib-runtime:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-mllib-dependency-file}
+    
+    scas-register-mlserver-tensorflow:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-tensorflow-dependency-file}
+    
+    scas-register-mlserver-pytorch:
+      - rule: scas-register-generic
+        properties:
+          - dependency-file-name: ${fossa-pytorch-dependency-file}
+
+### scas registration end ###
+
+### license generation start ###
+
+    generic-license-agreement-generate:
+      - task: license-agreement-generate 
+        docker-image: adp-release-auto
+        cmd: bash -c '''
+          set -eux -o pipefail;
+          if [ -z ${fossa-report-name} ] || [ -z ${dependency-file-name} ] || [ -z ${license-agreement-file} ]; then
+            echo "generic-license-agreement-generate cannot be run without setting fossa-report-name, dependency-file-name and license-agreement-file";
+            echo "Create a new rule that invokes generic-license-agreement-generate and sets fossa-report-name, dependency-file-name, license-agreement-file";
+            exit 1;
+          fi;
+          license-agreement generate --dependencies ${dependency-file-name} \
+            --fossa-report ${fossa-report-name} \
+            --output ${license-agreement-file};'''
+    
+    license-agreement-generate-mlserver-base:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-mlserver-report-name}
+          - dependency-file-name: ${fossa-mlserver-dependency-file}
+          - license-agreement-file: ${license-agreement-mlserver}
+    
+    license-agreement-generate-catboost-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-catboost-runtime-report-name}
+          - dependency-file-name: ${fossa-catboost-dependency-file}
+          - license-agreement-file: ${license-agreement-catboost}
+    
+    license-agreement-generate-huggingface-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-huggingface-runtime-report-name}
+          - dependency-file-name: ${fossa-huggingface-dependency-file}
+          - license-agreement-file: ${license-agreement-huggingface}
+    
+    license-agreement-generate-lightgbm-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-lightgbm-runtime-report-name}
+          - dependency-file-name: ${fossa-lightgbm-dependency-file}
+          - license-agreement-file: ${license-agreement-lightgbm}
+    
+    license-agreement-generate-mlflow-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-mlflow-runtime-report-name}
+          - dependency-file-name: ${fossa-mlflow-dependency-file}
+          - license-agreement-file: ${license-agreement-mlflow}
+    
+    license-agreement-generate-sklearn-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-sklearn-runtime-report-name}
+          - dependency-file-name: ${fossa-sklearn-dependency-file}
+          - license-agreement-file: ${license-agreement-sklearn}  
+    
+    license-agreement-generate-xgboost-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-xgboost-runtime-report-name}
+          - dependency-file-name: ${fossa-xgboost-dependency-file}
+          - license-agreement-file: ${license-agreement-xgboost}
+    
+    license-agreement-generate-mllib-runtime:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-mllib-runtime-report-name}
+          - dependency-file-name: ${fossa-mllib-dependency-file}
+          - license-agreement-file: ${license-agreement-mllib}
+    
+    license-agreement-generate-mlserver-tensorflow:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-mlserver-tensorflow-report-name}
+          - dependency-file-name: ${fossa-tensorflow-dependency-file}
+          - license-agreement-file: ${license-agreement-mlserver-tensorflow}
+    
+    license-agreement-generate-mlserver-pytorch:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-mlserver-pytorch-report-name}
+          - dependency-file-name: ${fossa-pytorch-dependency-file}
+          - license-agreement-file: ${license-agreement-mlserver-pytorch}
+
+    license-agreement-generate-3pp:
+      - rule: generic-license-agreement-generate
+        properties:
+          - fossa-report-name: ${fossa-3pp-report-name}
+          - dependency-file-name: ${fossa-3pp-dependency-file}
+          - license-agreement-file: ${license-agreement-3pp}
+
+    license-agreement-merge:
+      - task: merge-license-agreement
+        docker-image: adp-release-auto
+        cmd: bash -c '''
+          set -eux -o pipefail;
+          mkdir -p $(dirname ${consolidated-license-agreement-filename});
+          license-agreement merge \
+              --license-agreement ${license-agreement-mlserver} \
+              --license-agreement ${license-agreement-catboost} \
+              --license-agreement ${license-agreement-huggingface} \
+              --license-agreement ${license-agreement-lightgbm} \
+              --license-agreement ${license-agreement-mlflow} \
+              --license-agreement ${license-agreement-sklearn} \
+              --license-agreement ${license-agreement-xgboost} \
+              --license-agreement ${license-agreement-mllib} \
+              --license-agreement ${license-agreement-mlserver-tensorflow} \
+              --license-agreement ${license-agreement-mlserver-pytorch} \
+              --license-agreement ${license-agreement-3pp} \
+              --output ${consolidated-license-agreement-filename};'''
+
+### license generation end ###
+
+## manual tasks end

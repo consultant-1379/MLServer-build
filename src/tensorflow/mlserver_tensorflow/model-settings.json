@@ -1,0 +1,7 @@
+{
+    "name": "mobilenet_v2",
+    "implementation": "runtime.TensorflowRuntime",
+    "parameters": {
+        "uri": "../models/mobilenet_v2/model/mobilenet_v2"
+    }
+}

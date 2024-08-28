@@ -1,0 +1,56 @@
+
+Resolved method descriptor:
+// Perform inference using a specific model.
+rpc ModelInfer ( .inference.ModelInferRequest ) returns ( .inference.ModelInferResponse );
+
+Request metadata to send:
+(empty)
+
+Response headers received:
+content-type: application/grpc
+grpc-accept-encoding: identity, deflate, gzip
+
+Estimated response size: 98 bytes
+
+Response contents:
+{
+  "modelName": "mnist_v2",
+  "outputs": [
+    {
+      "name": "output-0",
+      "datatype": "FP32",
+      "shape": [
+        "1",
+        "10"
+      ],
+      "parameters": {
+        "content_type": {
+          "stringParam": "np"
+        }
+      },
+      "contents": {
+        "fp32Contents": [
+          -2.7644699,
+          -1.5321397,
+          -2.4129605,
+          -2.666271,
+          -2.2050648,
+          -2.0847385,
+          -2.4073172,
+          -2.5236886,
+          -2.58736,
+          -2.5030446
+        ]
+      }
+    }
+  ]
+}
+
+Response trailers received:
+ce-endpoint: mnist_v2
+ce-inferenceservicename: mlserver
+ce-modelid: mnist_v2
+ce-source: io.seldon.serving.deployment.mlserver
+ce-specversion: 0.3
+ce-type: io.seldon.serving.inference.response
+Sent 1 request and received 1 response

@@ -1,0 +1,7 @@
+{
+    "name": "mnist_v2",
+    "implementation": "runtime.PyTorchModel",
+    "parameters": {
+        "uri": "../models/mnist/model/mnist_cnn_jit.pt"
+    }
+}

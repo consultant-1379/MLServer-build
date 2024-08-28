@@ -1,0 +1,367 @@
+#
+# COPYRIGHT Ericsson 2024
+#
+#
+#
+# The copyright to the computer program(s) herein is the property of
+#
+# Ericsson Inc. The programs may be used and/or copied only with written
+#
+# permission from Ericsson Inc. or in accordance with the terms and
+#
+# conditions stipulated in the agreement/contract under which the
+#
+# program(s) have been supplied.
+#
+
+modelVersion: 2.0
+
+# See image catalog: https://confluence.lmera.ericsson.se/display/ACD/ADP+CICD+Docker+Image+Catalog
+docker-images:
+    - adp-maven-builder: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-java11mvnbuilder:${env.MVN_BUILDER_TAG}
+    - adp-release-auto: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-adp-release-auto:${env.RELEASE_AUTO_TAG}
+    - adp-image-dr-check: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/adp-image-dr-check:${env.IMAGE_DR_CHECK_TAG}
+    - adp-helm-dr-check: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/common-library-adp-helm-dr-check:${env.HELM_DR_CHECK_TAG}
+    - adp-go-builder: armdocker.rnd.ericsson.se/proj-adp-cicd-drop/bob-gobuilder.adp-base-os:${env.GO_BUILDER_TAG}
+    - ci-toolkit: armdocker.rnd.ericsson.se/proj-mxe-ci-internal/ci-toolkit:${env.CI_TOOLKIT_TAG}
+    - docker-python: armdockerhub.rnd.ericsson.se/python:${env.PYTHON_BUILDER_TAG}
+  
+import:
+    common: common-properties.yaml
+
+properties:
+    - model-lcm-repo-url: ssh://gerrit-gamma.gic.ericsson.se:29418/MXE/model-lcm
+    - model-lcm-version: develop 
+    - model-lcm-path: .bob/model-lcm
+    - changed-files: ${env.PWD}/.bob/changed-files.txt
+    
+    - mlserver-fossa-analyzer-image: "kserve-mlserver-base-with-fossa:${var.version}"
+    - mlserver-tensorflow-fossa-analyzer-image: "kserve-mlserver-tensorflow-with-fossa:${var.version}"
+    - mlserver-pytorch-fossa-analyzer-image: "kserve-mlserver-pytorch-with-fossa:${var.version}"
+    - disabled-images-design-rules: "-DimageDesignRule.config.DR-D470203-041-A=disable -DimageDesignRule.config.DR-D470203-050-A=disable"
+    - dr-checkers-report-path: build/checker-reports
+    - image-checker-report-path: ${dr-checkers-report-path}/image
+    - docker-bake-params: |
+        CBOS_VERSION=\"${common.common-base-os-version}\"
+        STDOUT_REDIRECT_VERSION=\"${common.stdout-redirect-version}\"
+        VERSION=\"${var.version}\"
+        COMMIT=\"${var.commithash}\"
+        RSTATE=\"${var.rstate}\"
+        PWD=\"${env.PWD}\"
+        BUILD_DATE=\"${var.image-build-date}\"
+        MLSERVER_VERSION=\"${common.mlserver-version}\"
+        IMAGE_PRODUCT_TITLE_PREFIX=\"${common.docker-image-title}\"
+        INTERNAL_IMAGE_PREFIX=\"${var.image-full-name-internal}\"
+        DROP_IMAGE_PREFIX=\"${var.image-full-name}\"
+
+        MLSERVER_BASE_IMAGE_USER_ID=\"${common.mlserver-base-image-user-id}\"
+        MLSERVER_BASE_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-base-image-product-number}\"
+        MLSERVER_FOSSA_IMAGE=\"${mlserver-fossa-analyzer-image}\"
+
+        MLSERVER_SKLEARN_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-sklearn-image-user-id}\"
+        MLSERVER_SKLEARN_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-sklearn-image-product-number}\"
+
+        MLSERVER_XGBOOST_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-xgboost-image-user-id}\"
+        MLSERVER_XGBOOST_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-xgboost-image-product-number}\"
+
+        MLSERVER_CATBOOST_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-catboost-image-user-id}\"
+        MLSERVER_CATBOOST_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-catboost-image-product-number}\"
+
+        MLSERVER_HUGGINGFACE_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-huggingface-image-user-id}\"
+        MLSERVER_HUGGINGFACE_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-huggingface-image-product-number}\"
+
+        MLSERVER_LIGHTGBM_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-lightgbm-image-user-id}\"
+        MLSERVER_LIGHTGBM_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-lightgbm-image-product-number}\"
+
+        MLSERVER_MLFLOW_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-mlflow-image-user-id}\"
+        MLSERVER_MLFLOW_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-mlflow-image-product-number}\"
+
+        MLSERVER_MLLIB_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-mllib-image-user-id}\"
+        MLSERVER_MLLIB_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-mllib-image-product-number}\"
+
+        CUSTOM_PYTHON_PACKAGE_VERSION=\"${var.custom-runtime-package-version}\"
+        MLSERVER_TENSORFLOW_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-tensorflow-image-user-id}\"
+        MLSERVER_TENSORFLOW_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-tensorflow-image-product-number}\"
+
+        MLSERVER_PYTORCH_RUNTIME_IMAGE_USER_ID=\"${common.mlserver-pytorch-image-user-id}\"
+        MLSERVER_PYTORCH_RUNTIME_IMAGE_PRODUCT_NUMBER=\"${common.mlserver-pytorch-image-product-number}\"
+
+        MLSERVER_TENSORFLOW_FOSSA_IMAGE=\"${mlserver-tensorflow-fossa-analyzer-image}\"
+        MLSERVER_PYTORCH_FOSSA_IMAGE=\"${mlserver-pytorch-fossa-analyzer-image}\"
+
+env: 
+    - HOME
+    - PWD 
+
+    # Docker
+    - BUILDKIT_PROGRESS (default=plain)
+    - DOCKER_BUILDKIT (default=1)
+
+    # Default docker image tags
+    - MVN_BUILDER_TAG (default=latest)
+    - RELEASE_AUTO_TAG (default=latest)
+    - IMAGE_DR_CHECK_TAG (default=latest)
+    - HELM_DR_CHECK_TAG (default=latest)
+    - GO_BUILDER_TAG (default=latest)
+    - CI_TOOLKIT_TAG (default=latest)
+    - PYTHON_BUILDER_TAG (default=3.11)
+
+    # Credentials
+    - SELI_ARTIFACTORY_REPO_USER
+    - SELI_ARTIFACTORY_REPO_PASS
+    - SELI_ARTIFACTORY_REPO_API_KEY
+    - GERRIT_USERNAME
+    - GERRIT_PASSWORD
+    - EMAIL (default=mxecifunc@ericsson.com)
+    - ARM_API_TOKEN
+    - SERO_ARM_TOKEN #SERO ARM KEY for CBOS Check
+    - SERO_ARM_USER (default=mxecifunc)
+
+    # Build Parameters
+    - CI_USER (default=mxecifunc)
+    - CHANGE_FILE (default=${env.PWD}/.bob/change-url.txt)
+
+var:
+    - image-full-name-internal
+    - image-full-name
+    - version
+    - commithash
+    - rstate
+    - helm-chart-repo-internal
+    - image-repopath-drop
+    - version-prefix
+    - image-repopath-internal
+    - image-dr-vm-args
+    - helm-chart-check-report-warnings
+    - cbos-version
+    - cbos-semver
+    - git-commit 
+    - git-tag
+    - git-tree-state
+    - image-build-date
+    - custom-runtime-package-version
+
+rules:
+    # Clean workspace
+    clean:
+        - task: rm
+          cmd:
+              - rm -rf build/
+
+    init:
+        - task: image-dr-vm-args
+          cmd: echo ${disabled-images-design-rules} > .bob/var.image-dr-vm-args
+    
+    lint-license-check:
+        - task: license-check
+          docker-image: adp-maven-builder
+          cmd: mvn -X license:check
+
+    add-missing-license:
+        - task: license-check
+          docker-image: adp-maven-builder
+          cmd: mvn -X license:format
+    
+    build-images:
+    - rule: clone-repo
+    - rule: bake-images
+    - rule: image-dr
+    - rule: cbo-check
+
+    clone-repo:
+    - task: clone-repo
+      cmd: bash -c '''
+            set -eux -o pipefail;
+            ${env.PWD}/ci/scripts/clone.sh --repoURL ${common.mlserver-repo-url} --version ${common.mlserver-version} --clone-to ${common.mlserver-path};'''
+
+    bake-images:
+    - task: write-config
+      cmd: 
+      - echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') > .bob/var.image-build-date
+      - cat ${env.PWD}/VERSION_PREFIX > .bob/var.custom-runtime-package-version
+      - printf "%s" "${docker-bake-params}" > ${env.PWD}/.bob/dynamic-params.hcl
+    - task: bake-images
+      cmd: docker buildx bake --load -f ${env.PWD}/images/docker-bake.hcl -f ${env.PWD}/.bob/dynamic-params.hcl --progress=plain
+
+    generate-constraints-file:
+    - task: bake-images:write-config
+    - task: generate-file 
+      cmd: docker buildx bake -f ${env.PWD}/images/docker-bake.hcl -f ${env.PWD}/.bob/dynamic-params.hcl  mlserver-constraints --progress=plain
+    - task: generate-constraints-for-custom-runtimes
+      cmd:  ${env.PWD}/ci/scripts/gen_constraints_for_custom_runtimes.sh
+
+    image-dr:
+    - task: image-dr-check
+      docker-image: adp-image-dr-check
+      docker-in-docker: socket
+      cmd: bash -c ''' 
+        set -eux;
+        mkdir -p ${image-checker-report-path};
+        images=(
+            ${var.image-full-name-internal}-kserve-mlserver-base:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-sklearn:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-xgboost:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-catboost:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-huggingface:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-lightgbm:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-mlflow:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-mllib:${var.version}
+            ${var.image-full-name-internal}-mlserver-tensorflow:${var.version}
+            ${var.image-full-name-internal}-mlserver-pytorch:${var.version}
+          );
+        for image in "${images[@]}"; do
+          image-dr-check --image $image --output ${image-checker-report-path} ${var.image-dr-vm-args};
+        done;'''
+    
+    cbo-check:
+    - task: cbo-check
+      docker-image: adp-release-auto
+      docker-in-docker: socket
+      cmd: bash -c ''' 
+        set -eux;
+        mkdir -p ${image-checker-report-path};
+        images=(
+          ${var.image-full-name-internal}-kserve-mlserver-base:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-sklearn:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-xgboost:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-catboost:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-huggingface:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-lightgbm:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-mlflow:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-mllib:${var.version}
+          ${var.image-full-name-internal}-mlserver-tensorflow:${var.version}
+          ${var.image-full-name-internal}-mlserver-pytorch:${var.version}
+        );
+        for image in "${images[@]}"; do
+          cbo-check --debug --image $image --arm-apikey ${env.ARM_API_TOKEN} --report ${image-checker-report-path};
+        done;''';
+
+
+    # build-mlserver-image:
+    # - task: mlserver-build
+    #   cmd: 
+    #   - echo $(date -u +'%Y-%m-%dT%H:%M:%SZ') > .bob/var.image-build-date
+    #   - docker build -f ${env.PWD}/images/mlserver/Dockerfile
+    #         --secret id=ARM_API_TOKEN,env=ARM_API_TOKEN
+    #         --build-context entrypoint_context=${env.PWD}/images/mlserver
+    #         --build-arg RUNTIMES="${ml-server-runtimes}"
+    #         --build-arg CBOS_VERSION=${common.common-base-os-version}
+    #         --build-arg COMMIT=${var.commithash}
+    #         --build-arg BUILD_DATE=${var.image-build-date}
+    #         --build-arg VERSION=${var.version}
+    #         --build-arg RSTATE=${var.rstate}
+    #         --build-arg IMAGE_PRODUCT_NUMBER=${common.mlserver-image-product-number}
+    #         --build-arg IMAGE_PRODUCT_TITLE="${common.docker-image-title} KServe MLServer"
+    #         --build-arg MLSERVER_VERSION=${common.mlserver-version}
+    #         --build-arg CONTAINER_NAME="${common.docker-image-name}-kserve-mlserver"
+    #         -t ${var.image-full-name-internal}-kserve-mlserver:${var.version}
+    #         -t ${var.image-full-name}-kserve-mlserver:${var.version}
+    #         ${common.mlserver-path}
+    # - task: image-dr-check 
+    #   docker-image: adp-image-dr-check
+    #   docker-in-docker: socket 
+    #   cmd:
+    #   - mkdir -p ${image-checker-report-path}/mlserver 
+    #   - image-dr-check --image "${var.image-full-name-internal}-kserve-mlserver:${var.version}" --output ${image-checker-report-path}/mlserver ${var.image-dr-vm-args}
+    # - task: cbo-check 
+    #   docker-image: adp-release-auto
+    #   docker-in-docker: socket
+    #   cmd: 
+    #     - cbo-check --debug --image "${var.image-full-name-internal}-kserve-mlserver:${var.version}" --arm-apikey ${env.ARM_API_TOKEN} --report ${image-checker-report-path}
+
+    image-push-internal:
+    - task: push
+      cmd: ${env.PWD}/ci/scripts/push_images.sh
+            ${var.image-full-name-internal}-kserve-mlserver-base:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-sklearn:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-xgboost:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-catboost:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-huggingface:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-lightgbm:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-mlflow:${var.version}
+            ${var.image-full-name-internal}-kserve-mlserver-mllib:${var.version}
+            ${var.image-full-name-internal}-mlserver-tensorflow:${var.version}
+            ${var.image-full-name-internal}-mlserver-pytorch:${var.version}
+        
+
+    image-push:
+    - task: push-public 
+      cmd: ${env.PWD}/ci/scripts/push_images.sh
+            ${var.image-full-name}-kserve-mlserver-base:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-sklearn:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-xgboost:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-catboost:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-huggingface:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-lightgbm:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-mlflow:${var.version} 
+            ${var.image-full-name}-kserve-mlserver-mllib:${var.version}
+            ${var.image-full-name}-mlserver-tensorflow:${var.version}
+            ${var.image-full-name}-mlserver-pytorch:${var.version}
+
+
+    delete-images:
+    - task: delete
+      cmd: bash -c '''
+        set -eux -o pipefail;
+        images=(
+          ${var.image-full-name-internal}-kserve-mlserver-base:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-sklearn:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-xgboost:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-catboost:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-huggingface:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-lightgbm:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-mlflow:${var.version}
+          ${var.image-full-name-internal}-kserve-mlserver-mllib:${var.version}
+          ${var.image-full-name-internal}-mlserver-tensorflow:${var.version}
+          ${var.image-full-name-internal}-mlserver-pytorch:${var.version}
+          ${var.image-full-name}-kserve-mlserver-base:${var.version}
+          ${var.image-full-name}-kserve-mlserver-sklearn:${var.version}
+          ${var.image-full-name}-kserve-mlserver-xgboost:${var.version}
+          ${var.image-full-name}-kserve-mlserver-catboost:${var.version}
+          ${var.image-full-name}-kserve-mlserver-huggingface:${var.version}
+          ${var.image-full-name}-kserve-mlserver-lightgbm:${var.version}
+          ${var.image-full-name}-kserve-mlserver-mlflow:${var.version}
+          ${var.image-full-name}-kserve-mlserver-mllib:${var.version}
+          ${var.image-full-name}-mlserver-tensorflow:${var.version}
+          ${var.image-full-name}-mlserver-pytorch:${var.version}
+        );
+
+        for image in "${images[@]}"; do
+          docker image remove --force $image || true;
+        done;
+        for image in $(docker images -f "dangling=true" -q); do
+          docker image remove --force $image || true;
+        done;'''
+
+    cleanup-temp-images:
+      - task: delete
+        cmd: bash -c ''' 
+              set -eux -o pipefail;
+              images=(
+                ${mlserver-fossa-analyzer-image}
+                ${mlserver-tensorflow-fossa-analyzer-image}
+                ${mlserver-pytorch-fossa-analyzer-image}
+              );
+              for image in "${images[@]}"; do
+                docker image remove --force $image || true;
+              done;
+              for image in $(docker images -f "dangling=true" -q); do
+                docker image remove --force $image || true;
+              done;'''
+        
+    
+    update-mlserver-in-model-lcm:
+      - task: clone-model-lcm
+        cmd: ${env.PWD}/ci/scripts/clone.sh --repoURL "${model-lcm-repo-url}" --version "${model-lcm-version}" --clone-to "${model-lcm-path}"
+      - task: update-files
+        docker-image: ci-toolkit
+        cmd: ${env.PWD}/ci/scripts/update_files.sh "${model-lcm-path}" ${var.image-full-name}:${var.version}  "${changed-files}"
+      - task: update-version
+        docker-image: adp-release-auto
+        docker-in-docker: socket
+        docker-envs:
+          - GERRIT_USERNAME
+          - GERRIT_PASSWORD
+          - EMAIL
+        cmd: 
+          - ${env.PWD}/ci/scripts/create_change.sh "${model-lcm-path}" "${changed-files}" "${var.version}" "${model-lcm-version}" "${env.PWD}/.bob/change-url.txt"
